@@ -14,7 +14,7 @@ export default function AuditLog() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Audit Log</h2>
         <p className="text-sm text-gray-400">
-          Read-only history of system events, automatically logged whenever leads, opportunities, or tasks are created, updated, or deleted.
+          Read-only history of system events, automatically logged whenever leads, projects, or tasks are created, updated, or deleted.
         </p>
         <div className="card divide-y divide-gray-100 dark:divide-gray-800">
           {log.map((entry) => (

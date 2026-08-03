@@ -23,28 +23,28 @@ router.get('/', async (req, res, next) => {
       }
     });
 
-    const opps = (await query(`SELECT * FROM opportunities WHERE stage NOT IN ('Closed Won','Closed Lost')`)).rows;
-    opps.forEach((o) => {
-      if (!o.close_date) return;
-      const days = (new Date(o.close_date) - now) / (1000 * 60 * 60 * 24);
+    const projects = (await query(`SELECT * FROM projects WHERE stage = 'active'`)).rows;
+    projects.forEach((p) => {
+      if (!p.close_date) return;
+      const days = (new Date(p.close_date) - now) / (1000 * 60 * 60 * 24);
       if (days >= 0 && days <= 7) {
         items.push({
-          id: `opp-closing-${o.id}`,
-          type: 'opportunity_closing_soon',
-          title: `Deal closing soon: ${o.name}`,
-          detail: `${o.company} — $${o.value.toLocaleString()} closes ${o.close_date}`,
-          entity: 'opportunity',
-          entity_id: o.id,
+          id: `project-closing-${p.id}`,
+          type: 'project_closing_soon',
+          title: `Project targeted to wrap up soon: ${p.name}`,
+          detail: `${p.company} — $${p.value.toLocaleString()} targeted for ${p.close_date}`,
+          entity: 'project',
+          entity_id: p.id,
           priority: 'high',
         });
       } else if (days < 0) {
         items.push({
-          id: `opp-overdue-${o.id}`,
-          type: 'opportunity_overdue',
-          title: `Deal past close date: ${o.name}`,
-          detail: `${o.company} — was due ${o.close_date}`,
-          entity: 'opportunity',
-          entity_id: o.id,
+          id: `project-overdue-${p.id}`,
+          type: 'project_overdue',
+          title: `Project past target date: ${p.name}`,
+          detail: `${p.company} — was due ${p.close_date}`,
+          entity: 'project',
+          entity_id: p.id,
           priority: 'high',
         });
       }

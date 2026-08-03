@@ -29,7 +29,7 @@ export default function PipelineStages() {
   }
 
   async function removeStage(id) {
-    if (!confirm('Delete this stage? Opportunities in this stage will keep their existing value.')) return;
+    if (!confirm('Delete this stage? Projects in this stage will keep their existing value.')) return;
     await client.delete(`/settings/stages/${id}`);
     refresh();
   }
@@ -49,7 +49,9 @@ export default function PipelineStages() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Pipeline Stages</h2>
         <p className="text-sm text-gray-400">
-          Rename, reorder, add, or remove stages. Changes here immediately affect the columns shown on the Opportunities page.
+          Rename, reorder, add, or remove stages. Changes here immediately affect the columns shown on the Projects page.
+          The dashboard's Total Revenue and Deals Won still key off the "won" stage specifically, so keep one stage
+          representing delivered/paid work.
         </p>
 
         <div className="card divide-y divide-gray-100 dark:divide-gray-800">

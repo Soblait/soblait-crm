@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Pencil, Trash2, Search, X, Lightbulb, Rocket, ArrowUpRight } from 'lucide-react';
 import client from '../api/client';
 
 const STATUSES = ['new', 'contacted', 'qualified', 'unqualified'];
@@ -14,6 +15,7 @@ const EMPTY_FORM = { name: '', company: '', email: '', phone: '', status: 'new',
 
 export default function Leads() {
   const [leads, setLeads] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
@@ -22,11 +24,25 @@ export default function Leads() {
 
   function refresh() {
     client.get('/leads').then((res) => setLeads(res.data));
+    client.get('/projects').then((res) => setProjects(res.data));
   }
 
   useEffect(() => {
     refresh();
   }, []);
+
+  const projectByLeadId = useMemo(() => {
+    const map = {};
+    projects.forEach((p) => {
+      if (p.lead_id) map[p.lead_id] = p;
+    });
+    return map;
+  }, [projects]);
+
+  async function convertLead(lead, stage) {
+    await client.post(`/leads/${lead.id}/convert`, { stage });
+    refresh();
+  }
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
@@ -110,35 +126,66 @@ export default function Leads() {
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Source</th>
               <th className="px-4 py-3 font-medium">Created</th>
+              <th className="px-4 py-3 font-medium">Project</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((lead) => (
-              <tr key={lead.id} className="border-b border-gray-50 dark:border-gray-800/60 hover:bg-gray-50 dark:hover:bg-gray-800/40">
-                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{lead.name}</td>
-                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{lead.company}</td>
-                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{lead.email}</td>
-                <td className="px-4 py-3">
-                  <span className={`badge ${STATUS_STYLE[lead.status] || ''}`}>{lead.status}</span>
-                </td>
-                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{lead.source}</td>
-                <td className="px-4 py-3 text-gray-400 text-xs">{(lead.created_at || '').slice(0, 10)}</td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-2">
-                    <button onClick={() => openEdit(lead)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400">
-                      <Pencil size={15} />
-                    </button>
-                    <button onClick={() => handleDelete(lead.id)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-red-400">
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {filtered.map((lead) => {
+              const convertedProject = projectByLeadId[lead.id];
+              return (
+                <tr key={lead.id} className="border-b border-gray-50 dark:border-gray-800/60 hover:bg-gray-50 dark:hover:bg-gray-800/40">
+                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{lead.name}</td>
+                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{lead.company}</td>
+                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{lead.email}</td>
+                  <td className="px-4 py-3">
+                    <span className={`badge ${STATUS_STYLE[lead.status] || ''}`}>{lead.status}</span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{lead.source}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">{(lead.created_at || '').slice(0, 10)}</td>
+                  <td className="px-4 py-3">
+                    {convertedProject ? (
+                      <Link
+                        to="/projects"
+                        className="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 flex items-center gap-1 w-fit"
+                      >
+                        <ArrowUpRight size={12} /> View project
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => convertLead(lead, 'idea')}
+                          title="Convert to Idea"
+                          className="px-2 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-1"
+                        >
+                          <Lightbulb size={12} /> Idea
+                        </button>
+                        <button
+                          onClick={() => convertLead(lead, 'active')}
+                          title="Convert to Project"
+                          className="px-2 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-1"
+                        >
+                          <Rocket size={12} /> Project
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => openEdit(lead)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400">
+                        <Pencil size={15} />
+                      </button>
+                      <button onClick={() => handleDelete(lead.id)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-red-400">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                   No leads found.
                 </td>
               </tr>

@@ -8,7 +8,7 @@ import { ChatProvider, useChat } from '../context/ChatContext.jsx';
 const TITLES = {
   '/dashboard': 'Dashboard',
   '/leads': 'Leads',
-  '/opportunities': 'Opportunities',
+  '/projects': 'Projects',
   '/act-now': 'Act Now',
   '/calendar': 'Smart Calendar',
   '/tasks': 'Tasks',

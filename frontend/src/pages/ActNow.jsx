@@ -4,8 +4,8 @@ import client from '../api/client';
 
 const ICONS = {
   task_overdue: Clock,
-  opportunity_closing_soon: Zap,
-  opportunity_overdue: AlertTriangle,
+  project_closing_soon: Zap,
+  project_overdue: AlertTriangle,
   lead_not_contacted: UserX,
 };
 

@@ -6,7 +6,7 @@ import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Leads from './pages/Leads.jsx';
-import Opportunities from './pages/Opportunities.jsx';
+import Projects from './pages/Projects.jsx';
 import ActNow from './pages/ActNow.jsx';
 import Calendar from './pages/Calendar.jsx';
 import Tasks from './pages/Tasks.jsx';
@@ -45,7 +45,7 @@ export default function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="leads" element={<Leads />} />
-        <Route path="opportunities" element={<Opportunities />} />
+        <Route path="projects" element={<Projects />} />
         <Route path="act-now" element={<ActNow />} />
         <Route path="calendar" element={<Calendar />} />
         <Route path="tasks" element={<Tasks />} />

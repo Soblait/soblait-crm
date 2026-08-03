@@ -7,7 +7,7 @@ const { authMiddleware } = require('./middleware/auth');
 
 const authRoutes = require('./routes/auth');
 const leadsRoutes = require('./routes/leads');
-const opportunitiesRoutes = require('./routes/opportunities');
+const projectsRoutes = require('./routes/projects');
 const tasksRoutes = require('./routes/tasks');
 const dashboardRoutes = require('./routes/dashboard');
 const actNowRoutes = require('./routes/actNow');
@@ -26,7 +26,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'soblait-
 
 app.use('/api/auth', authRoutes);
 app.use('/api/leads', authMiddleware, leadsRoutes);
-app.use('/api/opportunities', authMiddleware, opportunitiesRoutes);
+app.use('/api/projects', authMiddleware, projectsRoutes);
 app.use('/api/tasks', authMiddleware, tasksRoutes);
 app.use('/api/dashboard', authMiddleware, dashboardRoutes);
 app.use('/api/act-now', authMiddleware, actNowRoutes);

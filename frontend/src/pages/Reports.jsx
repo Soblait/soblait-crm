@@ -42,27 +42,30 @@ export default function Reports() {
     client.get('/reports').then((res) => setData(res.data));
   }, []);
 
-  const filteredOpps = useMemo(() => {
+  const filteredProjects = useMemo(() => {
     if (!data) return [];
-    return data.opportunities.filter((o) => inRange(o.close_date || o.created_at, range));
+    return data.projects.filter((p) => inRange(p.close_date || p.created_at, range));
   }, [data, range]);
 
   const stageChartData = useMemo(() => {
     if (!data) return [];
     const stages = {};
-    filteredOpps.forEach((o) => {
-      stages[o.stage] = (stages[o.stage] || 0) + o.value;
+    filteredProjects.forEach((p) => {
+      stages[p.stage] = (stages[p.stage] || 0) + p.value;
     });
-    return Object.entries(stages).map(([stage, value]) => ({ stage, value }));
-  }, [filteredOpps, data]);
+    return Object.entries(stages).map(([stage, value]) => ({
+      stage: stage ? stage.charAt(0).toUpperCase() + stage.slice(1) : stage,
+      value,
+    }));
+  }, [filteredProjects, data]);
 
-  const openOpportunities = filteredOpps.filter((o) => o.stage !== 'Closed Won' && o.stage !== 'Closed Lost').length;
-  const closedWonDeals = filteredOpps.filter((o) => o.stage === 'Closed Won').length;
-  const totalRevenue = filteredOpps.filter((o) => o.stage === 'Closed Won').reduce((s, o) => s + o.value, 0);
+  const activeProjects = filteredProjects.filter((p) => p.stage === 'active').length;
+  const wonProjects = filteredProjects.filter((p) => p.stage === 'won').length;
+  const totalRevenue = filteredProjects.filter((p) => p.stage === 'won').reduce((s, p) => s + p.value, 0);
 
   function exportCsv() {
     const header = ['Name', 'Company', 'Value', 'Stage', 'Close Date'];
-    const rows = filteredOpps.map((o) => [o.name, o.company, o.value, o.stage, o.close_date || '']);
+    const rows = filteredProjects.map((p) => [p.name, p.company, p.value, p.stage, p.close_date || '']);
     const csv = [header, ...rows].map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -95,13 +98,13 @@ export default function Reports() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={Target} label="Open Opportunities" value={openOpportunities} tint="bg-gradient-to-br from-brand-purple to-brand-purple2" />
-        <StatCard icon={Trophy} label="Closed Won Deals" value={closedWonDeals} tint="bg-gradient-to-br from-emerald-400 to-emerald-600" />
+        <StatCard icon={Target} label="Active Projects" value={activeProjects} tint="bg-gradient-to-br from-brand-purple to-brand-purple2" />
+        <StatCard icon={Trophy} label="Won Projects" value={wonProjects} tint="bg-gradient-to-br from-emerald-400 to-emerald-600" />
         <StatCard icon={DollarSign} label="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} tint="bg-gradient-to-br from-brand-pink to-rose-500" />
       </div>
 
       <div className="card p-5">
-        <h3 className="font-medium text-gray-700 dark:text-gray-200 mb-4">Pipeline by Stage</h3>
+        <h3 className="font-medium text-gray-700 dark:text-gray-200 mb-4">Projects by Stage</h3>
         <div style={{ width: '100%', height: 320 }}>
           <ResponsiveContainer>
             <BarChart data={stageChartData}>

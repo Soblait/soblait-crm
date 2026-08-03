@@ -8,8 +8,8 @@ router.get('/', async (req, res, next) => {
     const events = (await query('SELECT * FROM calendar_events ORDER BY date ASC')).rows;
     const tasks = (await query(`SELECT id, title, due_date as date, priority FROM tasks WHERE due_date IS NOT NULL`)).rows
       .map((t) => ({ ...t, type: 'task' }));
-    const closes = (await query(`SELECT id, name as title, close_date as date, stage FROM opportunities WHERE close_date IS NOT NULL`)).rows
-      .map((o) => ({ ...o, type: 'opportunity_close' }));
+    const closes = (await query(`SELECT id, name as title, close_date as date, stage FROM projects WHERE close_date IS NOT NULL`)).rows
+      .map((p) => ({ ...p, type: 'project_close' }));
 
     res.json({
       events: events.map((e) => ({ ...e, type: e.type || 'event' })),

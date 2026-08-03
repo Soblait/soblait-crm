@@ -5,8 +5,8 @@ const router = express.Router();
 
 const TEMPLATES = {
   'Welcome Email': 'When a new lead is created, send a welcome email',
-  'Big Deal Alert': 'When an opportunity value exceeds $1,000,000, alert the team',
-  'Deal Won': 'When an opportunity moves to Closed Won, notify the team and log revenue',
+  'Big Deal Alert': 'When a project value exceeds $1,000,000, alert the team',
+  'Deal Won': 'When a project moves to Won, notify the team and log revenue',
 };
 
 router.get('/', async (req, res, next) => {

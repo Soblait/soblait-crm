@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Zap, DollarSign, Users, Trophy } from 'lucide-react';
+import { Sparkles, Zap, DollarSign, Users, Trophy, Lightbulb, Rocket } from 'lucide-react';
 import client from '../api/client';
 import { useChat } from '../context/ChatContext.jsx';
 
@@ -83,12 +83,18 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           icon={DollarSign}
           label="Total Revenue"
           value={stats ? `$${stats.totalRevenue.toLocaleString()}` : '—'}
           tint="bg-gradient-to-br from-emerald-400 to-emerald-600"
+        />
+        <StatCard
+          icon={Trophy}
+          label="Deals Won"
+          value={stats ? stats.dealsWon : '—'}
+          tint="bg-gradient-to-br from-brand-pink to-rose-500"
         />
         <StatCard
           icon={Users}
@@ -97,10 +103,16 @@ export default function Dashboard() {
           tint="bg-gradient-to-br from-brand-purple to-brand-purple2"
         />
         <StatCard
-          icon={Trophy}
-          label="Deals Won"
-          value={stats ? stats.dealsWon : '—'}
-          tint="bg-gradient-to-br from-brand-pink to-rose-500"
+          icon={Lightbulb}
+          label="Ideas"
+          value={stats ? stats.ideasCount : '—'}
+          tint="bg-gradient-to-br from-amber-400 to-orange-500"
+        />
+        <StatCard
+          icon={Rocket}
+          label="Active Projects"
+          value={stats ? stats.activeProjectsCount : '—'}
+          tint="bg-gradient-to-br from-sky-400 to-blue-600"
         />
       </div>
     </div>

@@ -21,7 +21,7 @@ import { useTheme } from '../context/ThemeContext.jsx';
 const salesItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/leads', label: 'Leads', icon: Users },
-  { to: '/opportunities', label: 'Opportunities', icon: Target },
+  { to: '/projects', label: 'Projects', icon: Target },
   { to: '/act-now', label: 'Act Now', icon: Zap },
   { to: '/calendar', label: 'Smart Calendar', icon: CalendarDays },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
@@ -31,7 +31,7 @@ const salesItems = [
 ];
 
 const clientItems = [
-  { to: '/opportunities', label: 'Clients', icon: Building2 },
+  { to: '/projects', label: 'Clients', icon: Building2 },
   { to: '/reports', label: 'Contracts', icon: FileText },
 ];
 

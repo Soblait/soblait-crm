@@ -15,7 +15,7 @@ export default function Topbar({ title, onAskAI }) {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search leads, opportunities..."
+          placeholder="Search leads, projects..."
           className="w-full pl-9 pr-3 py-2 text-sm rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
         />
       </div>

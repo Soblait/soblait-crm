@@ -18,6 +18,19 @@ function query(text, params) {
 }
 
 async function migrate() {
+  // Rename the legacy `opportunities` table to `projects` exactly once. Guarded so that
+  // re-running this on every boot (which happens every deploy) is a safe no-op once the
+  // rename has already occurred.
+  await query(`
+    DO $$
+    BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'opportunities')
+         AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'projects') THEN
+        ALTER TABLE opportunities RENAME TO projects;
+      END IF;
+    END $$;
+  `);
+
   const statements = [
     `CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -39,17 +52,24 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )`,
-    `CREATE TABLE IF NOT EXISTS opportunities (
+    // Fresh-install shape for brand new databases (on existing prod DBs this is a no-op
+    // since the rename above already produced this table from `opportunities`).
+    `CREATE TABLE IF NOT EXISTS projects (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       company TEXT,
       value REAL DEFAULT 0,
-      stage TEXT DEFAULT 'New',
+      stage TEXT DEFAULT 'idea',
       close_date TEXT,
       notes TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )`,
+    // New project-tracking columns (additive, safe on the renamed table too).
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS type TEXT`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS demo_done INTEGER DEFAULT 0`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS demo_date TEXT`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS lead_id INTEGER REFERENCES leads(id)`,
     `CREATE TABLE IF NOT EXISTS tasks (
       id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,
@@ -124,6 +144,58 @@ async function migrate() {
   for (const stmt of statements) {
     await query(stmt);
   }
+
+  // Remap old sales-stage vocabulary to the new project lifecycle. Naturally idempotent —
+  // after the first run no rows will match the old values, so the WHERE clause matches 0 rows.
+  await query(`
+    UPDATE projects SET stage = CASE stage
+      WHEN 'New' THEN 'idea'
+      WHEN 'Discovery' THEN 'idea'
+      WHEN 'Proposal' THEN 'active'
+      WHEN 'Negotiation' THEN 'active'
+      WHEN 'Closed Won' THEN 'won'
+      WHEN 'Closed Lost' THEN 'lost'
+      ELSE stage
+    END
+    WHERE stage IN ('New','Discovery','Proposal','Negotiation','Closed Won','Closed Lost')
+  `);
+
+  await remapPipelineStages();
+
+  // Refresh cosmetic automation descriptions that referenced the old "opportunity" wording.
+  // Guarded on the exact old text so this only touches rows that still have it (idempotent).
+  await query(
+    `UPDATE automations SET trigger_desc = $1 WHERE name = 'Big Deal Alert' AND trigger_desc = $2`,
+    [
+      'When a project value exceeds $1,000,000, alert the team',
+      'When an opportunity value exceeds $1,000,000, alert the team',
+    ]
+  );
+  await query(
+    `UPDATE automations SET trigger_desc = $1 WHERE name = 'Deal Won' AND trigger_desc = $2`,
+    [
+      'When a project moves to Won, notify the team and log revenue',
+      'When an opportunity moves to Closed Won, notify the team and log revenue',
+    ]
+  );
+}
+
+// Replaces the old 6-stage sales pipeline (New/Discovery/Proposal/Negotiation/Closed Won/
+// Closed Lost) with the new 4-stage project lifecycle (idea/active/won/lost), but only the
+// first time — guarded by checking whether any old-vocabulary stage name is still present.
+// If the client has since renamed/reordered/added stages themselves, this is a no-op and
+// their customizations are left untouched.
+async function remapPipelineStages() {
+  const OLD_STAGE_NAMES = ['New', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
+  const rows = (await query('SELECT name FROM pipeline_stages')).rows;
+  const hasOldStages = rows.some((r) => OLD_STAGE_NAMES.includes(r.name));
+  if (hasOldStages) {
+    await query('DELETE FROM pipeline_stages');
+    const newStages = ['idea', 'active', 'won', 'lost'];
+    for (let i = 0; i < newStages.length; i++) {
+      await query('INSERT INTO pipeline_stages (name, position) VALUES ($1,$2)', [newStages[i], i]);
+    }
+  }
 }
 
 async function logAudit(action, entity, entity_id, details) {
@@ -141,15 +213,15 @@ async function logAutomation(automation_id, automation_name, message) {
   await query('UPDATE automations SET run_count = run_count + 1 WHERE id = $1', [automation_id]);
 }
 
-// Fires any active automation rules relevant to a newly created opportunity.
-async function checkOpportunityAutomations(opp) {
+// Fires any active automation rules relevant to a newly created/updated project.
+async function checkProjectAutomations(project) {
   const rules = (await query('SELECT * FROM automations WHERE active = 1')).rows;
   for (const rule of rules) {
-    if (rule.name === 'Big Deal Alert' && opp.value >= 1000000) {
-      await logAutomation(rule.id, rule.name, `${rule.name} fired: "${opp.name}" (${opp.company}) is worth $${opp.value.toLocaleString()}`);
+    if (rule.name === 'Big Deal Alert' && project.value >= 1000000) {
+      await logAutomation(rule.id, rule.name, `${rule.name} fired: "${project.name}" (${project.company}) is worth $${project.value.toLocaleString()}`);
     }
-    if (rule.name === 'Deal Won' && opp.stage === 'Closed Won') {
-      await logAutomation(rule.id, rule.name, `${rule.name} fired: "${opp.name}" (${opp.company}) marked as Closed Won`);
+    if (rule.name === 'Deal Won' && project.stage === 'won') {
+      await logAutomation(rule.id, rule.name, `${rule.name} fired: "${project.name}" (${project.company}) marked as Won`);
     }
   }
 }
@@ -187,12 +259,12 @@ async function seed() {
     }
   }
 
-  const oppCount = Number((await query('SELECT COUNT(*) as c FROM opportunities')).rows[0].c);
-  if (oppCount === 0) {
-    await query('INSERT INTO opportunities (name, company, value, stage, close_date) VALUES ($1,$2,$3,$4,$5)',
-      ['TechCorp Enterprise Deal', 'TechCorp', 45000, 'Proposal', '2026-08-15']);
-    await query('INSERT INTO opportunities (name, company, value, stage, close_date) VALUES ($1,$2,$3,$4,$5)',
-      ['StartupLab Pilot', 'StartupLab', 12000, 'Discovery', '2026-09-01']);
+  const projectCount = Number((await query('SELECT COUNT(*) as c FROM projects')).rows[0].c);
+  if (projectCount === 0) {
+    await query('INSERT INTO projects (name, company, value, stage, close_date, type) VALUES ($1,$2,$3,$4,$5,$6)',
+      ['TechCorp Enterprise Deal', 'TechCorp', 45000, 'active', '2026-08-15', 'application']);
+    await query('INSERT INTO projects (name, company, value, stage, close_date, type) VALUES ($1,$2,$3,$4,$5,$6)',
+      ['StartupLab Pilot', 'StartupLab', 12000, 'idea', '2026-09-01', 'website']);
   }
 
   const taskCount = Number((await query('SELECT COUNT(*) as c FROM tasks')).rows[0].c);
@@ -209,7 +281,7 @@ async function seed() {
 
   const stageCount = Number((await query('SELECT COUNT(*) as c FROM pipeline_stages')).rows[0].c);
   if (stageCount === 0) {
-    const stages = ['New', 'Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
+    const stages = ['idea', 'active', 'won', 'lost'];
     for (let i = 0; i < stages.length; i++) {
       await query('INSERT INTO pipeline_stages (name, position) VALUES ($1,$2)', [stages[i], i]);
     }
@@ -266,9 +338,9 @@ async function seed() {
     await query('INSERT INTO automations (name, trigger_desc, active, run_count) VALUES ($1,$2,1,3)',
       ['Welcome Email', 'When a new lead is created, send a welcome email']);
     await query('INSERT INTO automations (name, trigger_desc, active, run_count) VALUES ($1,$2,1,1)',
-      ['Big Deal Alert', 'When an opportunity value exceeds $1,000,000, alert the team']);
+      ['Big Deal Alert', 'When a project value exceeds $1,000,000, alert the team']);
     await query('INSERT INTO automations (name, trigger_desc, active, run_count) VALUES ($1,$2,1,2)',
-      ['Deal Won', 'When an opportunity moves to Closed Won, notify the team and log revenue']);
+      ['Deal Won', 'When a project moves to Won, notify the team and log revenue']);
   }
 
   const logCount = Number((await query('SELECT COUNT(*) as c FROM automation_log')).rows[0].c);
@@ -285,8 +357,8 @@ async function seed() {
     const entries = [
       ['create', 'lead', 1, 'Created lead Sarah Johnson'],
       ['create', 'lead', 2, 'Created lead David Kim'],
-      ['create', 'opportunity', 1, 'Created opportunity TechCorp Enterprise Deal'],
-      ['create', 'opportunity', 2, 'Created opportunity StartupLab Pilot'],
+      ['create', 'project', 1, 'Created project TechCorp Enterprise Deal'],
+      ['create', 'project', 2, 'Created project StartupLab Pilot'],
       ['create', 'task', 1, 'Created task Follow up with Sarah Johnson'],
       ['update', 'lead', 1, 'Updated status of Sarah Johnson to contacted'],
     ];
@@ -309,4 +381,4 @@ async function initDb() {
   await seed();
 }
 
-module.exports = { pool, query, initDb, logAudit, logAutomation, checkOpportunityAutomations, checkLeadAutomations };
+module.exports = { pool, query, initDb, logAudit, logAutomation, checkProjectAutomations, checkLeadAutomations };

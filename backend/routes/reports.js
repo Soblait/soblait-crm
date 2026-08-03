@@ -5,27 +5,27 @@ const router = express.Router();
 
 router.get('/', async (req, res, next) => {
   try {
-    const opportunities = (await query('SELECT * FROM opportunities')).rows;
+    const projects = (await query('SELECT * FROM projects')).rows;
 
-    const openOpportunities = opportunities.filter((o) => o.stage !== 'Closed Won' && o.stage !== 'Closed Lost').length;
-    const closedWonDeals = opportunities.filter((o) => o.stage === 'Closed Won').length;
-    const totalRevenue = opportunities
-      .filter((o) => o.stage === 'Closed Won')
-      .reduce((sum, o) => sum + (o.value || 0), 0);
+    const activeProjects = projects.filter((p) => p.stage === 'active').length;
+    const wonProjects = projects.filter((p) => p.stage === 'won').length;
+    const totalRevenue = projects
+      .filter((p) => p.stage === 'won')
+      .reduce((sum, p) => sum + (p.value || 0), 0);
 
     const stages = (await query('SELECT name FROM pipeline_stages ORDER BY position ASC')).rows.map((s) => s.name);
     const pipelineByStage = stages.map((stage) => ({
       stage,
-      value: opportunities.filter((o) => o.stage === stage).reduce((sum, o) => sum + (o.value || 0), 0),
-      count: opportunities.filter((o) => o.stage === stage).length,
+      value: projects.filter((p) => p.stage === stage).reduce((sum, p) => sum + (p.value || 0), 0),
+      count: projects.filter((p) => p.stage === stage).length,
     }));
 
     res.json({
-      openOpportunities,
-      closedWonDeals,
+      activeProjects,
+      wonProjects,
       totalRevenue,
       pipelineByStage,
-      opportunities,
+      projects,
     });
   } catch (err) {
     next(err);

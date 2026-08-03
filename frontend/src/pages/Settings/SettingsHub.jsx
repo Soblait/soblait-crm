@@ -6,7 +6,7 @@ import SettingsLayout from './SettingsLayout.jsx';
 const CARDS = [
   { to: '/settings/team', label: 'Team & Users', desc: 'Manage who has access to Soblait', icon: Users },
   { to: '/settings/audit-log', label: 'Audit Log', desc: 'Read-only history of system events', icon: ScrollText },
-  { to: '/settings/stages', label: 'Pipeline Stages', desc: 'Customize your opportunity stages', icon: Columns3 },
+  { to: '/settings/stages', label: 'Pipeline Stages', desc: 'Customize your project stages', icon: Columns3 },
   { to: '/settings/tags', label: 'System Tags', desc: 'Manage tags used on leads & deals', icon: Tag },
   { to: '/settings/onboarding-templates', label: 'Onboarding Templates', desc: 'Reusable onboarding checklists', icon: FileText },
   { to: '/settings/integrations', label: 'Integrations', desc: 'Connect Slack, HubSpot & more', icon: Plug },

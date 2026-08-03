@@ -10,7 +10,7 @@ Styled after a clean SaaS CRM look (purple-to-pink gradient, rounded cards) and 
 - Email/password auth (JWT, stored in localStorage)
 - Dashboard with an AI-style assistant that computes real answers from your data (pipeline summary, focus-for-today, follow-up drafts, at-risk deals)
 - Leads CRUD with status/source/search filtering
-- Opportunities with Board / Kanban / List views, editable pipeline stages
+- Projects (ideas → active → won/lost) with Board / Kanban / List views, editable pipeline stages
 - Act Now: computed next-best-actions feed (overdue tasks, deals closing soon, stale leads)
 - Smart Calendar: month grid with task/close-date chips, add events, "Sync Google Calendar" (stub)
 - Tasks board (Todo / In Progress / Done) with priority badges
@@ -47,7 +47,7 @@ npm install
 npm run dev
 ```
 
-Make sure `backend/.env` has a valid `DATABASE_URL` pointing at your Supabase project (see above) or any other Postgres instance. Runs on **http://localhost:3001**. On first run it connects to the database, migrates the schema, and seeds demo data (leads, opportunities, tasks, pipeline stages, tags, templates, team members, audit log entries) if the tables are empty.
+Make sure `backend/.env` has a valid `DATABASE_URL` pointing at your Supabase project (see above) or any other Postgres instance. Runs on **http://localhost:3001**. On first run it connects to the database, migrates the schema, and seeds demo data (leads, projects, tasks, pipeline stages, tags, templates, team members, audit log entries) if the tables are empty.
 
 ### Frontend
 

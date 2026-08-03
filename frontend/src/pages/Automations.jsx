@@ -4,8 +4,8 @@ import client from '../api/client';
 
 const TEMPLATES = [
   { name: 'Welcome Email', desc: 'When a new lead is created, send a welcome email', icon: Mail },
-  { name: 'Big Deal Alert', desc: 'When an opportunity value exceeds $1,000,000, alert the team', icon: DollarSign },
-  { name: 'Deal Won', desc: 'When an opportunity moves to Closed Won, notify the team and log revenue', icon: Trophy },
+  { name: 'Big Deal Alert', desc: 'When a project value exceeds $1,000,000, alert the team', icon: DollarSign },
+  { name: 'Deal Won', desc: 'When a project moves to Won, notify the team and log revenue', icon: Trophy },
 ];
 
 function StatCard({ icon: Icon, label, value, tint }) {
