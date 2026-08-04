@@ -15,6 +15,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import client from '../api/client';
+import { useConfirm } from '../context/ConfirmContext.jsx';
 
 const TOOLS = [
   {
@@ -337,6 +338,7 @@ function ToolModal({ tool, projects, initialProjectId, onClose }) {
 }
 
 function PromptLibraryModal({ projects, onClose }) {
+  const confirm = useConfirm();
   const [prompts, setPrompts] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -364,7 +366,7 @@ function PromptLibraryModal({ projects, onClose }) {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this prompt?')) return;
+    if (!(await confirm('Delete this prompt?'))) return;
     await client.delete(`/ai-tools/prompts/${id}`);
     refresh();
   }

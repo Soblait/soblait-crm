@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, X, Trash2, Pencil, Check, Circle, CheckCircle2 } from 'lucide-react';
+import { Plus, X, Trash2, Pencil, Check, Circle, CheckCircle2, Loader2 } from 'lucide-react';
 import client from '../api/client';
+import { useConfirm } from '../context/ConfirmContext.jsx';
 
 const EMPTY_FORM = { name: '', contact_name: '', contact_email: '', project_id: '', notes: '' };
 
@@ -54,15 +55,21 @@ function FeatureChecklist({ clientId, features, onAdd, onToggle, onDelete }) {
 }
 
 export default function Clients() {
+  const confirm = useConfirm();
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
   function refresh() {
-    client.get('/clients').then((res) => setClients(res.data));
-    client.get('/projects').then((res) => setProjects(res.data));
+    Promise.all([client.get('/clients'), client.get('/projects')])
+      .then(([clientsRes, projectsRes]) => {
+        setClients(clientsRes.data);
+        setProjects(projectsRes.data);
+      })
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -94,7 +101,7 @@ export default function Clients() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this client? Their feature list will be removed too.')) return;
+    if (!(await confirm('Delete this client? Their feature list will be removed too.'))) return;
     await client.delete(`/clients/${id}`);
     refresh();
   }
@@ -165,7 +172,12 @@ export default function Clients() {
             </div>
           );
         })}
-        {clients.length === 0 && (
+        {loading && (
+          <div className="card p-8 text-center text-gray-400 md:col-span-2 flex items-center justify-center gap-2">
+            <Loader2 size={16} className="animate-spin" /> Loading clients…
+          </div>
+        )}
+        {!loading && clients.length === 0 && (
           <div className="card p-8 text-center text-gray-400 md:col-span-2">No clients yet. Add your first one above.</div>
         )}
       </div>

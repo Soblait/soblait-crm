@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { Download, Target, Trophy, DollarSign } from 'lucide-react';
+import { Download, Target, Trophy, DollarSign, Loader2 } from 'lucide-react';
 import client from '../api/client';
 
 const RANGES = ['All Time', 'This Month', 'This Quarter'];
@@ -97,26 +97,34 @@ export default function Reports() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={Target} label="Active Projects" value={activeProjects} tint="bg-gradient-to-br from-brand-purple to-brand-purple2" />
-        <StatCard icon={Trophy} label="Won Projects" value={wonProjects} tint="bg-gradient-to-br from-emerald-400 to-emerald-600" />
-        <StatCard icon={DollarSign} label="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} tint="bg-gradient-to-br from-brand-pink to-rose-500" />
-      </div>
-
-      <div className="card p-5">
-        <h3 className="font-medium text-gray-700 dark:text-gray-200 mb-4">Projects by Stage</h3>
-        <div style={{ width: '100%', height: 320 }}>
-          <ResponsiveContainer>
-            <BarChart data={stageChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="stage" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} />
-              <Bar dataKey="value" fill="#a855f7" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+      {data === null ? (
+        <div className="card p-8 text-center text-gray-400 flex items-center justify-center gap-2">
+          <Loader2 size={16} className="animate-spin" /> Loading reports…
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatCard icon={Target} label="Active Projects" value={activeProjects} tint="bg-gradient-to-br from-brand-purple to-brand-purple2" />
+            <StatCard icon={Trophy} label="Won Projects" value={wonProjects} tint="bg-gradient-to-br from-emerald-400 to-emerald-600" />
+            <StatCard icon={DollarSign} label="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} tint="bg-gradient-to-br from-brand-pink to-rose-500" />
+          </div>
+
+          <div className="card p-5">
+            <h3 className="font-medium text-gray-700 dark:text-gray-200 mb-4">Projects by Stage</h3>
+            <div style={{ width: '100%', height: 320 }}>
+              <ResponsiveContainer>
+                <BarChart data={stageChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="stage" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} />
+                  <Bar dataKey="value" fill="#a855f7" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

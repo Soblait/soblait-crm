@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X, Loader2 } from 'lucide-react';
 import SettingsLayout from './SettingsLayout.jsx';
 import client from '../../api/client';
+import { useConfirm } from '../../context/ConfirmContext.jsx';
 
 const ROLES = ['Admin', 'Sales Rep', 'Manager'];
 
 export default function TeamUsers() {
+  const confirm = useConfirm();
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', role: 'Sales Rep', password: '' });
 
   function refresh() {
-    client.get('/settings/users').then((res) => setUsers(res.data));
+    client.get('/settings/users').then((res) => setUsers(res.data)).finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -27,7 +30,7 @@ export default function TeamUsers() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Remove this team member?')) return;
+    if (!(await confirm('Remove this team member?'))) return;
     await client.delete(`/settings/users/${id}`);
     refresh();
   }
@@ -41,6 +44,12 @@ export default function TeamUsers() {
             <Plus size={15} /> Add User
           </button>
         </div>
+        {loading && (
+          <div className="card p-8 text-center text-gray-400 flex items-center justify-center gap-2">
+            <Loader2 size={16} className="animate-spin" /> Loading team…
+          </div>
+        )}
+        {!loading && (
         <div className="card divide-y divide-gray-100 dark:divide-gray-800">
           {users.map((u) => (
             <div key={u.id} className="p-4 flex items-center justify-between">
@@ -57,6 +66,7 @@ export default function TeamUsers() {
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {showModal && (

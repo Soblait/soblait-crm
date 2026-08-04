@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Pencil, Trash2, X, LayoutGrid, List as ListIcon, Columns3, CheckCircle2, Circle, Lightbulb, Smartphone, Briefcase } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, LayoutGrid, List as ListIcon, Columns3, CheckCircle2, Circle, Lightbulb, Smartphone, Briefcase, Loader2 } from 'lucide-react';
 import client from '../api/client';
+import { useConfirm } from '../context/ConfirmContext.jsx';
 
 const EMPTY_FORM = {
   name: '',
@@ -30,8 +31,10 @@ function currency(n) {
 
 export default function Projects() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const confirm = useConfirm();
   const [projects, setProjects] = useState([]);
   const [stages, setStages] = useState([]);
+  const [loading, setLoading] = useState(true);
   // Tab / view / stage-filter are seeded from the URL on first load and kept in sync with it
   // afterward (see the effect below), so refreshing the page — or bookmarking/sharing a link —
   // lands you back on the exact same tab, view, and filter instead of resetting to the default.
@@ -43,8 +46,12 @@ export default function Projects() {
   const [form, setForm] = useState(EMPTY_FORM);
 
   function refresh() {
-    client.get('/projects').then((res) => setProjects(res.data));
-    client.get('/settings/stages').then((res) => setStages(res.data));
+    Promise.all([client.get('/projects'), client.get('/settings/stages')])
+      .then(([projectsRes, stagesRes]) => {
+        setProjects(projectsRes.data);
+        setStages(stagesRes.data);
+      })
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -144,7 +151,7 @@ export default function Projects() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this project?')) return;
+    if (!(await confirm('Delete this project?'))) return;
     await client.delete(`/projects/${id}`);
     refresh();
   }
@@ -229,7 +236,13 @@ export default function Projects() {
         </div>
       </div>
 
-      {(view === 'board' || view === 'kanban') && (
+      {loading && (
+        <div className="card p-8 text-center text-gray-400 flex items-center justify-center gap-2">
+          <Loader2 size={16} className="animate-spin" /> Loading projects…
+        </div>
+      )}
+
+      {!loading && (view === 'board' || view === 'kanban') && (
         <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.max(stages.length, 1)}, minmax(240px, 1fr))` }}>
           {stages.map((stage) => {
             const stageProjects = filtered.filter((p) => p.stage === stage.name);
@@ -289,7 +302,7 @@ export default function Projects() {
         </div>
       )}
 
-      {view === 'list' && (
+      {!loading && view === 'list' && (
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

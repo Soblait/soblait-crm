@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, X, Pencil, Trash2 } from 'lucide-react';
+import { Plus, X, Pencil, Trash2, Loader2 } from 'lucide-react';
 import client from '../api/client';
+import { useConfirm } from '../context/ConfirmContext.jsx';
 
 const COLUMNS = [
   { key: 'todo', label: 'Todo' },
@@ -17,13 +18,15 @@ const PRIORITY_STYLE = {
 const EMPTY_FORM = { title: '', due_date: '', priority: 'medium', status: 'todo' };
 
 export default function Tasks() {
+  const confirm = useConfirm();
   const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
   function refresh() {
-    client.get('/tasks').then((res) => setTasks(res.data));
+    client.get('/tasks').then((res) => setTasks(res.data)).finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -54,7 +57,7 @@ export default function Tasks() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this task?')) return;
+    if (!(await confirm('Delete this task?'))) return;
     await client.delete(`/tasks/${id}`);
     refresh();
   }
@@ -72,6 +75,13 @@ export default function Tasks() {
         </button>
       </div>
 
+      {loading && (
+        <div className="card p-8 text-center text-gray-400 flex items-center justify-center gap-2">
+          <Loader2 size={16} className="animate-spin" /> Loading tasks…
+        </div>
+      )}
+
+      {!loading && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {COLUMNS.map((col) => {
           const colTasks = tasks.filter((t) => t.status === col.key);
@@ -118,6 +128,7 @@ export default function Tasks() {
           );
         })}
       </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">

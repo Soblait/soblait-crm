@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bot, Zap, PauseCircle, CheckCircle2, Mail, DollarSign, Trophy } from 'lucide-react';
+import { Bot, Zap, PauseCircle, CheckCircle2, Mail, DollarSign, Trophy, Loader2 } from 'lucide-react';
 import client from '../api/client';
 
 const TEMPLATES = [
@@ -27,13 +27,16 @@ export default function Automations() {
   const [stats, setStats] = useState({ total: 0, active: 0, disabled: 0, successRate: 0 });
   const [log, setLog] = useState([]);
   const [tab, setTab] = useState('rules');
+  const [loading, setLoading] = useState(true);
 
   function refresh() {
-    client.get('/automations').then((res) => {
-      setRules(res.data.rules);
-      setStats(res.data.stats);
-    });
-    client.get('/automations/log').then((res) => setLog(res.data));
+    Promise.all([client.get('/automations'), client.get('/automations/log')])
+      .then(([rulesRes, logRes]) => {
+        setRules(rulesRes.data.rules);
+        setStats(rulesRes.data.stats);
+        setLog(logRes.data);
+      })
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -53,10 +56,10 @@ export default function Automations() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <StatCard icon={Bot} label="Total Rules" value={stats.total} tint="bg-gradient-to-br from-brand-purple to-brand-purple2" />
-        <StatCard icon={CheckCircle2} label="Active" value={stats.active} tint="bg-gradient-to-br from-emerald-400 to-emerald-600" />
-        <StatCard icon={PauseCircle} label="Disabled" value={stats.disabled} tint="bg-gradient-to-br from-gray-400 to-gray-500" />
-        <StatCard icon={Zap} label="Success Rate" value={`${stats.successRate}%`} tint="bg-gradient-to-br from-brand-pink to-rose-500" />
+        <StatCard icon={Bot} label="Total Rules" value={loading ? '—' : stats.total} tint="bg-gradient-to-br from-brand-purple to-brand-purple2" />
+        <StatCard icon={CheckCircle2} label="Active" value={loading ? '—' : stats.active} tint="bg-gradient-to-br from-emerald-400 to-emerald-600" />
+        <StatCard icon={PauseCircle} label="Disabled" value={loading ? '—' : stats.disabled} tint="bg-gradient-to-br from-gray-400 to-gray-500" />
+        <StatCard icon={Zap} label="Success Rate" value={loading ? '—' : `${stats.successRate}%`} tint="bg-gradient-to-br from-brand-pink to-rose-500" />
       </div>
 
       <div className="card p-5">
@@ -93,7 +96,13 @@ export default function Automations() {
         </button>
       </div>
 
-      {tab === 'rules' && (
+      {loading && (
+        <div className="card p-8 text-center text-gray-400 flex items-center justify-center gap-2">
+          <Loader2 size={16} className="animate-spin" /> Loading automations…
+        </div>
+      )}
+
+      {!loading && tab === 'rules' && (
         <div className="card divide-y divide-gray-100 dark:divide-gray-800">
           {rules.map((rule) => (
             <div key={rule.id} className="p-4 flex items-center justify-between gap-4">
@@ -118,7 +127,7 @@ export default function Automations() {
         </div>
       )}
 
-      {tab === 'log' && (
+      {!loading && tab === 'log' && (
         <div className="card divide-y divide-gray-100 dark:divide-gray-800">
           {log.map((entry) => (
             <div key={entry.id} className="p-4">

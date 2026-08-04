@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Search, X, Lightbulb, Rocket, ArrowUpRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, X, Lightbulb, Rocket, ArrowUpRight, Loader2 } from 'lucide-react';
 import client from '../api/client';
+import { useConfirm } from '../context/ConfirmContext.jsx';
 
 const STATUSES = ['new', 'contacted', 'qualified', 'unqualified'];
 const STATUS_STYLE = {
@@ -17,8 +18,10 @@ const CONVERT_EMPTY_FORM = { value: '', type: '', notes: '' };
 
 export default function Leads() {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [leads, setLeads] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
@@ -28,8 +31,12 @@ export default function Leads() {
   const [convertForm, setConvertForm] = useState(CONVERT_EMPTY_FORM);
 
   function refresh() {
-    client.get('/leads').then((res) => setLeads(res.data));
-    client.get('/projects').then((res) => setProjects(res.data));
+    Promise.all([client.get('/leads'), client.get('/projects')])
+      .then(([leadsRes, projectsRes]) => {
+        setLeads(leadsRes.data);
+        setProjects(projectsRes.data);
+      })
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -99,7 +106,7 @@ export default function Leads() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this lead?')) return;
+    if (!(await confirm('Delete this lead?'))) return;
     await client.delete(`/leads/${id}`);
     refresh();
   }
@@ -202,7 +209,16 @@ export default function Leads() {
                 </tr>
               );
             })}
-            {filtered.length === 0 && (
+            {loading && (
+              <tr>
+                <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 size={16} className="animate-spin" /> Loading leads…
+                  </span>
+                </td>
+              </tr>
+            )}
+            {!loading && filtered.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                   No leads found.

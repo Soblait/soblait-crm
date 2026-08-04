@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
 import SettingsLayout from './SettingsLayout.jsx';
 import client from '../../api/client';
+import { useConfirm } from '../../context/ConfirmContext.jsx';
 
 export default function PipelineStages() {
+  const confirm = useConfirm();
   const [stages, setStages] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [newStage, setNewStage] = useState('');
 
   function refresh() {
-    client.get('/settings/stages').then((res) => setStages(res.data));
+    client.get('/settings/stages').then((res) => setStages(res.data)).finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -29,7 +32,7 @@ export default function PipelineStages() {
   }
 
   async function removeStage(id) {
-    if (!confirm('Delete this stage? Projects in this stage will keep their existing value.')) return;
+    if (!(await confirm('Delete this stage? Projects in this stage will keep their existing value.'))) return;
     await client.delete(`/settings/stages/${id}`);
     refresh();
   }
@@ -54,6 +57,13 @@ export default function PipelineStages() {
           representing delivered/paid work.
         </p>
 
+        {loading && (
+          <div className="card p-8 text-center text-gray-400 flex items-center justify-center gap-2">
+            <Loader2 size={16} className="animate-spin" /> Loading stages…
+          </div>
+        )}
+
+        {!loading && (
         <div className="card divide-y divide-gray-100 dark:divide-gray-800">
           {stages.map((stage, i) => (
             <div key={stage.id} className="p-4 flex items-center gap-3">
@@ -76,6 +86,7 @@ export default function PipelineStages() {
             </div>
           ))}
         </div>
+        )}
 
         <form onSubmit={addStage} className="flex items-center gap-2">
           <input

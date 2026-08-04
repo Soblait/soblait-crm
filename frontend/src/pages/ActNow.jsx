@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Clock, UserX, Check, Zap } from 'lucide-react';
+import { AlertTriangle, Clock, UserX, Check, Zap, Loader2 } from 'lucide-react';
 import client from '../api/client';
 
 const ICONS = {
@@ -18,9 +18,10 @@ const PRIORITY_STYLE = {
 export default function ActNow() {
   const [items, setItems] = useState([]);
   const [dismissed, setDismissed] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   function refresh() {
-    client.get('/act-now').then((res) => setItems(res.data));
+    client.get('/act-now').then((res) => setItems(res.data)).finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -51,7 +52,13 @@ export default function ActNow() {
         </p>
       </div>
 
-      {visible.length === 0 && (
+      {loading && (
+        <div className="card p-8 text-center text-gray-400 flex items-center justify-center gap-2">
+          <Loader2 size={16} className="animate-spin" /> Checking for anything urgent…
+        </div>
+      )}
+
+      {!loading && visible.length === 0 && (
         <div className="card p-8 text-center text-gray-400">You're all caught up. Nothing urgent right now.</div>
       )}
 
