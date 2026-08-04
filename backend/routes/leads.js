@@ -78,17 +78,17 @@ router.delete('/:id', async (req, res, next) => {
 });
 
 // Converts a lead into a new Project (stage 'idea' or 'active'), pre-filled from the lead's
-// name/company and linked back via lead_id. The user finishes filling in details (type,
-// value, notes) on the Projects page afterwards.
+// name/company and linked back via lead_id. Accepts optional value/type/notes so the whole
+// conversion can happen in a single step instead of a follow-up edit on the Projects page.
 router.post('/:id/convert', async (req, res, next) => {
   try {
     const lead = (await query('SELECT * FROM leads WHERE id = $1', [req.params.id])).rows[0];
     if (!lead) return res.status(404).json({ error: 'Lead not found' });
-    const { stage } = req.body;
+    const { stage, value, type, notes } = req.body;
     const finalStage = ['idea', 'active'].includes(stage) ? stage : 'idea';
     const result = await query(
-      `INSERT INTO projects (name, company, value, stage, lead_id) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-      [lead.name, lead.company || '', 0, finalStage, lead.id]
+      `INSERT INTO projects (name, company, value, stage, notes, type, lead_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+      [lead.name, lead.company || '', Number(value) || 0, finalStage, notes || '', type || '', lead.id]
     );
     const project = (await query('SELECT * FROM projects WHERE id = $1', [result.rows[0].id])).rows[0];
     await logAudit(

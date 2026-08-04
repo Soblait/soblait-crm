@@ -161,6 +161,7 @@ async function migrate() {
   `);
 
   await remapPipelineStages();
+  await ensureDemoStage();
 
   // Refresh cosmetic automation descriptions that referenced the old "opportunity" wording.
   // Guarded on the exact old text so this only touches rows that still have it (idempotent).
@@ -191,11 +192,28 @@ async function remapPipelineStages() {
   const hasOldStages = rows.some((r) => OLD_STAGE_NAMES.includes(r.name));
   if (hasOldStages) {
     await query('DELETE FROM pipeline_stages');
-    const newStages = ['idea', 'active', 'won', 'lost'];
+    const newStages = ['idea', 'demo', 'active', 'won', 'lost'];
     for (let i = 0; i < newStages.length; i++) {
       await query('INSERT INTO pipeline_stages (name, position) VALUES ($1,$2)', [newStages[i], i]);
     }
   }
+}
+
+// Inserts a 'demo' stage right after 'idea' (matching the Lead -> Idea -> Demo -> Project -> Won
+// lifecycle), shifting later stages' positions up by one. Guarded so this only runs once per
+// database — if the client has already added/renamed/removed a 'demo' stage themselves, or
+// never had an 'idea' stage to anchor off of, this is a safe no-op.
+async function ensureDemoStage() {
+  const rows = (await query('SELECT id, name, position FROM pipeline_stages ORDER BY position ASC')).rows;
+  const hasDemo = rows.some((r) => r.name === 'demo');
+  if (hasDemo || rows.length === 0) return;
+
+  const idea = rows.find((r) => r.name === 'idea');
+  if (!idea) return;
+
+  const insertPosition = idea.position + 1;
+  await query('UPDATE pipeline_stages SET position = position + 1 WHERE position >= $1', [insertPosition]);
+  await query('INSERT INTO pipeline_stages (name, position) VALUES ($1,$2)', ['demo', insertPosition]);
 }
 
 async function logAudit(action, entity, entity_id, details) {
@@ -281,7 +299,7 @@ async function seed() {
 
   const stageCount = Number((await query('SELECT COUNT(*) as c FROM pipeline_stages')).rows[0].c);
   if (stageCount === 0) {
-    const stages = ['idea', 'active', 'won', 'lost'];
+    const stages = ['idea', 'demo', 'active', 'won', 'lost'];
     for (let i = 0; i < stages.length; i++) {
       await query('INSERT INTO pipeline_stages (name, position) VALUES ($1,$2)', [stages[i], i]);
     }

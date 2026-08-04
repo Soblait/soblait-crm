@@ -10,18 +10,14 @@ import {
   BarChart3,
   Bot,
   Sparkles,
-  Building2,
-  FileText,
   Settings,
   Moon,
   Sun,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 
-const salesItems = [
+const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/leads', label: 'Leads', icon: Users },
-  { to: '/projects', label: 'Projects', icon: Target },
   { to: '/act-now', label: 'Act Now', icon: Zap },
   { to: '/calendar', label: 'Smart Calendar', icon: CalendarDays },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
@@ -30,9 +26,9 @@ const salesItems = [
   { to: '/galaxy', label: 'Galaxy', icon: Sparkles },
 ];
 
-const clientItems = [
-  { to: '/projects', label: 'Clients', icon: Building2 },
-  { to: '/reports', label: 'Contracts', icon: FileText },
+const crmItems = [
+  { to: '/leads', label: 'Leads', icon: Users },
+  { to: '/projects', label: 'Projects', icon: Target },
 ];
 
 function NavItem({ to, label, icon: Icon }) {
@@ -69,20 +65,17 @@ export default function Sidebar() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="px-2 text-[11px] font-semibold tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-          SALES
-        </div>
         <nav className="space-y-1 mb-6">
-          {salesItems.map((item) => (
+          {navItems.map((item) => (
             <NavItem key={item.label} {...item} />
           ))}
         </nav>
 
         <div className="px-2 text-[11px] font-semibold tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-          CLIENTS
+          CRM
         </div>
         <nav className="space-y-1">
-          {clientItems.map((item) => (
+          {crmItems.map((item) => (
             <NavItem key={item.label} {...item} />
           ))}
         </nav>

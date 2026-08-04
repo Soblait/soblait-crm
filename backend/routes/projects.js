@@ -3,7 +3,7 @@ const { query, logAudit, checkProjectAutomations } = require('../db');
 
 const router = express.Router();
 
-const STAGES = ['idea', 'active', 'won', 'lost'];
+const STAGES = ['idea', 'demo', 'active', 'won', 'lost'];
 
 router.get('/', async (req, res, next) => {
   try {

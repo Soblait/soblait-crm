@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Search, X, Lightbulb, Rocket, ArrowUpRight } from 'lucide-react';
 import client from '../api/client';
 
@@ -13,7 +13,10 @@ const STATUS_STYLE = {
 
 const EMPTY_FORM = { name: '', company: '', email: '', phone: '', status: 'new', source: 'website', notes: '' };
 
+const CONVERT_EMPTY_FORM = { value: '', type: '', notes: '' };
+
 export default function Leads() {
+  const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
   const [projects, setProjects] = useState([]);
   const [query, setQuery] = useState('');
@@ -21,6 +24,8 @@ export default function Leads() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [convertTarget, setConvertTarget] = useState(null); // { lead, stage }
+  const [convertForm, setConvertForm] = useState(CONVERT_EMPTY_FORM);
 
   function refresh() {
     client.get('/leads').then((res) => setLeads(res.data));
@@ -39,9 +44,23 @@ export default function Leads() {
     return map;
   }, [projects]);
 
-  async function convertLead(lead, stage) {
-    await client.post(`/leads/${lead.id}/convert`, { stage });
-    refresh();
+  function openConvert(lead, stage) {
+    setConvertTarget({ lead, stage });
+    setConvertForm(CONVERT_EMPTY_FORM);
+  }
+
+  async function submitConvert(e) {
+    e.preventDefault();
+    const { lead, stage } = convertTarget;
+    await client.post(`/leads/${lead.id}/convert`, {
+      stage,
+      value: Number(convertForm.value) || 0,
+      type: convertForm.type,
+      notes: convertForm.notes,
+    });
+    setConvertTarget(null);
+    // Land straight on the board so there's no second trip to find and edit the new project.
+    navigate('/projects');
   }
 
   const filtered = useMemo(() => {
@@ -154,14 +173,14 @@ export default function Leads() {
                     ) : (
                       <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => convertLead(lead, 'idea')}
+                          onClick={() => openConvert(lead, 'idea')}
                           title="Convert to Idea"
                           className="px-2 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-1"
                         >
                           <Lightbulb size={12} /> Idea
                         </button>
                         <button
-                          onClick={() => convertLead(lead, 'active')}
+                          onClick={() => openConvert(lead, 'active')}
                           title="Convert to Project"
                           className="px-2 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-1"
                         >
@@ -258,6 +277,52 @@ export default function Leads() {
               />
               <button type="submit" className="w-full btn-gradient justify-center flex py-2.5">
                 {editing ? 'Save Changes' : 'Create Lead'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {convertTarget && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="card w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                {convertTarget.stage === 'active' ? <Rocket size={17} /> : <Lightbulb size={17} />}
+                Convert to {convertTarget.stage === 'active' ? 'Project' : 'Idea'}
+              </h3>
+              <button onClick={() => setConvertTarget(null)}>
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-400 mb-4">
+              {convertTarget.lead.name} ({convertTarget.lead.company || 'no company'})
+            </p>
+            <form onSubmit={submitConvert} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  placeholder="Type (app, website, ...)"
+                  value={convertForm.type}
+                  onChange={(e) => setConvertForm({ ...convertForm, type: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+                />
+                <input
+                  type="number"
+                  placeholder="Value ($)"
+                  value={convertForm.value}
+                  onChange={(e) => setConvertForm({ ...convertForm, value: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+                />
+              </div>
+              <textarea
+                placeholder="Notes (optional)"
+                value={convertForm.notes}
+                onChange={(e) => setConvertForm({ ...convertForm, notes: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+                rows={3}
+              />
+              <button type="submit" className="w-full btn-gradient justify-center flex py-2.5">
+                Create {convertTarget.stage === 'active' ? 'Project' : 'Idea'}
               </button>
             </form>
           </div>

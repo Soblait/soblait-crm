@@ -140,9 +140,14 @@ export default function Projects() {
                           <div className="font-medium text-sm text-gray-900 dark:text-white">{p.name}</div>
                           <div className="text-xs text-gray-400">{p.company}</div>
                         </div>
-                        <button onClick={() => openEdit(p)} className="text-gray-400 hover:text-brand-purple">
-                          <Pencil size={13} />
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={() => openEdit(p)} className="text-gray-400 hover:text-brand-purple">
+                            <Pencil size={13} />
+                          </button>
+                          <button onClick={() => handleDelete(p.id)} className="text-gray-400 hover:text-red-500">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                       <div className="text-sm font-semibold mt-2 text-brand-purple dark:text-brand-purple2">{currency(p.value)}</div>
                       {p.type && <div className="text-xs text-gray-400 mt-1 capitalize">{p.type}</div>}
@@ -296,9 +301,24 @@ export default function Projects() {
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
                 rows={3}
               />
-              <button type="submit" className="w-full btn-gradient justify-center flex py-2.5">
-                {editing ? 'Save Changes' : 'Create Project'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="submit" className="flex-1 btn-gradient justify-center flex py-2.5">
+                  {editing ? 'Save Changes' : 'Create Project'}
+                </button>
+                {editing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowModal(false);
+                      handleDelete(editing.id);
+                    }}
+                    title="Delete project"
+                    className="px-3 py-2.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         </div>
