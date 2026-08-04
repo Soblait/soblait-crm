@@ -34,6 +34,7 @@ export default function Projects() {
   const [stages, setStages] = useState([]);
   const [view, setView] = useState('board');
   const [activeTab, setActiveTab] = useState('project');
+  const [stageFilter, setStageFilter] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -50,7 +51,15 @@ export default function Projects() {
   // Ideas / Apps / Projects are the same underlying pipeline (idea -> demo -> active -> won ->
   // lost), just split into separate areas by what kind of thing it fundamentally is. Fall back
   // to 'project' for any row that hasn't been categorized yet.
-  const filtered = useMemo(() => projects.filter((p) => (p.category || 'project') === activeTab), [projects, activeTab]);
+  // A stage filter (e.g. from a Dashboard stat card) overrides the category tab entirely so you
+  // see every matching item across Ideas/Apps/Projects, not just whichever tab is active.
+  const filtered = useMemo(
+    () =>
+      stageFilter
+        ? projects.filter((p) => p.stage === stageFilter)
+        : projects.filter((p) => (p.category || 'project') === activeTab),
+    [projects, activeTab, stageFilter]
+  );
 
   const totalValue = useMemo(() => filtered.reduce((s, p) => s + p.value, 0), [filtered]);
   const inProgressCount = useMemo(() => filtered.filter((p) => p.stage === 'demo' || p.stage === 'active').length, [filtered]);
@@ -64,10 +73,19 @@ export default function Projects() {
 
   // Lets the sidebar's "+ New" quick-add jump straight here with the modal already open,
   // instead of requiring a click into Projects first and then another click to Add Project.
+  // Also lets Dashboard stat cards ("Deals Won", "Ideas", "Active Projects", ...) deep-link
+  // straight to the full underlying list, filtered by stage across all categories.
   useEffect(() => {
     const quickAdd = searchParams.get('new');
+    const stageParam = searchParams.get('stage');
     if (quickAdd) {
       openCreate(quickAdd === '1' ? {} : { stage: quickAdd });
+    }
+    if (stageParam) {
+      setStageFilter(stageParam);
+      setView('list');
+    }
+    if (quickAdd || stageParam) {
       setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,18 +124,35 @@ export default function Projects() {
 
   return (
     <div className="space-y-5">
-      <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden w-fit">
-        {CATEGORIES.map((c) => (
-          <button
-            key={c.key}
-            onClick={() => setActiveTab(c.key)}
-            className={`px-4 py-2 text-sm font-medium flex items-center gap-1.5 ${
-              activeTab === c.key ? 'bg-gradient-to-r from-brand-purple to-brand-pink text-white' : 'bg-white dark:bg-gray-800 text-gray-500'
-            }`}
-          >
-            <c.icon size={14} /> {c.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden w-fit">
+          {CATEGORIES.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => {
+                setActiveTab(c.key);
+                setStageFilter(null);
+              }}
+              className={`px-4 py-2 text-sm font-medium flex items-center gap-1.5 ${
+                !stageFilter && activeTab === c.key
+                  ? 'bg-gradient-to-r from-brand-purple to-brand-pink text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-500'
+              }`}
+            >
+              <c.icon size={14} /> {c.label}
+            </button>
+          ))}
+        </div>
+        {stageFilter && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="badge bg-brand-purple/10 text-brand-purple dark:text-brand-purple2 capitalize">
+              Showing all "{stageFilter}" stage items (every category)
+            </span>
+            <button onClick={() => setStageFilter(null)} className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 underline">
+              Clear
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

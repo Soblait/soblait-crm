@@ -11,9 +11,12 @@ const SUGGESTIONS = [
   'Find deals at risk',
 ];
 
-function StatCard({ icon: Icon, label, value, tint }) {
+function StatCard({ icon: Icon, label, value, tint, to }) {
   return (
-    <div className="card p-5 flex items-center gap-4">
+    <Link
+      to={to}
+      className="card p-5 flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition cursor-pointer"
+    >
       <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${tint}`}>
         <Icon size={20} className="text-white" />
       </div>
@@ -21,7 +24,7 @@ function StatCard({ icon: Icon, label, value, tint }) {
         <div className="text-sm text-gray-400">{label}</div>
         <div className="text-2xl font-semibold text-gray-900 dark:text-white">{value}</div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -89,30 +92,35 @@ export default function Dashboard() {
           label="Total Revenue"
           value={stats ? `$${stats.totalRevenue.toLocaleString()}` : '—'}
           tint="bg-gradient-to-br from-emerald-400 to-emerald-600"
+          to="/projects?stage=won"
         />
         <StatCard
           icon={Trophy}
           label="Deals Won"
           value={stats ? stats.dealsWon : '—'}
           tint="bg-gradient-to-br from-brand-pink to-rose-500"
+          to="/projects?stage=won"
         />
         <StatCard
           icon={Users}
           label="Active Leads"
           value={stats ? stats.activeLeads : '—'}
           tint="bg-gradient-to-br from-brand-purple to-brand-purple2"
+          to="/leads"
         />
         <StatCard
           icon={Lightbulb}
           label="Ideas"
           value={stats ? stats.ideasCount : '—'}
           tint="bg-gradient-to-br from-amber-400 to-orange-500"
+          to="/projects?stage=idea"
         />
         <StatCard
           icon={Rocket}
           label="Active Projects"
           value={stats ? stats.activeProjectsCount : '—'}
           tint="bg-gradient-to-br from-sky-400 to-blue-600"
+          to="/projects?stage=active"
         />
       </div>
     </div>
