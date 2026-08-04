@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Pencil, Trash2, X, LayoutGrid, List as ListIcon, Columns3, CheckCircle2, Circle } from 'lucide-react';
 import client from '../api/client';
 
@@ -11,6 +12,9 @@ const EMPTY_FORM = {
   demo_done: false,
   demo_date: '',
   notes: '',
+  app_name: '',
+  audience: '',
+  publish_target: '',
 };
 
 function currency(n) {
@@ -18,6 +22,7 @@ function currency(n) {
 }
 
 export default function Projects() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState([]);
   const [stages, setStages] = useState([]);
   const [view, setView] = useState('board');
@@ -39,11 +44,22 @@ export default function Projects() {
   const activeCount = useMemo(() => projects.filter((p) => p.stage === 'active').length, [projects]);
   const wonCount = useMemo(() => projects.filter((p) => p.stage === 'won').length, [projects]);
 
-  function openCreate() {
+  function openCreate(presetStage) {
     setEditing(null);
-    setForm({ ...EMPTY_FORM, stage: stages[0]?.name || 'idea' });
+    setForm({ ...EMPTY_FORM, stage: presetStage || stages[0]?.name || 'idea' });
     setShowModal(true);
   }
+
+  // Lets the sidebar's "+ New" quick-add jump straight here with the modal already open,
+  // instead of requiring a click into Projects first and then another click to Add Project.
+  useEffect(() => {
+    const quickAdd = searchParams.get('new');
+    if (quickAdd) {
+      openCreate(quickAdd === '1' ? undefined : quickAdd);
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, stages]);
 
   function openEdit(project) {
     setEditing(project);
@@ -151,6 +167,8 @@ export default function Projects() {
                       </div>
                       <div className="text-sm font-semibold mt-2 text-brand-purple dark:text-brand-purple2">{currency(p.value)}</div>
                       {p.type && <div className="text-xs text-gray-400 mt-1 capitalize">{p.type}</div>}
+                      {p.app_name && <div className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">"{p.app_name}"{p.audience ? ` · ${p.audience}` : ''}</div>}
+                      {p.publish_target && <div className="text-xs text-gray-400 mt-0.5">→ {p.publish_target}</div>}
                       <div className="flex items-center gap-1.5 text-xs mt-2 text-gray-500 dark:text-gray-400">
                         {p.demo_done ? <CheckCircle2 size={13} className="text-emerald-500" /> : <Circle size={13} />}
                         {p.demo_done ? `Demo done${p.demo_date ? ` (${p.demo_date})` : ''}` : 'No demo yet'}
@@ -265,6 +283,31 @@ export default function Projects() {
                   className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
                 />
               </div>
+
+              <div className="text-[11px] font-semibold tracking-wider text-gray-400 pt-1">
+                APP DETAILS (OPTIONAL)
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  placeholder="App / product name"
+                  value={form.app_name}
+                  onChange={(e) => setForm({ ...form, app_name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+                />
+                <input
+                  placeholder="Audience"
+                  value={form.audience}
+                  onChange={(e) => setForm({ ...form, audience: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+                />
+              </div>
+              <input
+                placeholder="Where we'll upload it (App Store, Google Play, web host, ...)"
+                value={form.publish_target}
+                onChange={(e) => setForm({ ...form, publish_target: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+              />
+
               <select
                 value={form.stage}
                 onChange={(e) => setForm({ ...form, stage: e.target.value })}

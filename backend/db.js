@@ -70,6 +70,11 @@ async function migrate() {
     `ALTER TABLE projects ADD COLUMN IF NOT EXISTS demo_done INTEGER DEFAULT 0`,
     `ALTER TABLE projects ADD COLUMN IF NOT EXISTS demo_date TEXT`,
     `ALTER TABLE projects ADD COLUMN IF NOT EXISTS lead_id INTEGER REFERENCES leads(id)`,
+    // Optional reference info, mainly useful for type='app' projects but available on any
+    // project. Nothing here is required — just extra context for the team.
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS app_name TEXT`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS audience TEXT`,
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS publish_target TEXT`,
     `CREATE TABLE IF NOT EXISTS tasks (
       id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -13,6 +13,7 @@ import {
   Settings,
   Moon,
   Sun,
+  Plus,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 
@@ -51,6 +52,7 @@ function NavItem({ to, label, icon: Icon }) {
 
 export default function Sidebar() {
   const { dark, toggleDark } = useTheme();
+  const navigate = useNavigate();
 
   return (
     <aside className="w-64 shrink-0 h-screen sticky top-0 flex flex-col border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-5">
@@ -63,6 +65,13 @@ export default function Sidebar() {
           <div className="text-xs text-gray-400 dark:text-gray-500 leading-tight">Your CRM, simplified</div>
         </div>
       </div>
+
+      <button
+        onClick={() => navigate('/projects?new=1')}
+        className="btn-gradient w-full justify-center flex items-center gap-1.5 text-sm mb-6"
+      >
+        <Plus size={15} /> New Idea / Project / App
+      </button>
 
       <div className="flex-1 overflow-y-auto">
         <nav className="space-y-1 mb-6">
