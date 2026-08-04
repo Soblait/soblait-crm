@@ -32,9 +32,12 @@ export default function Projects() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState([]);
   const [stages, setStages] = useState([]);
-  const [view, setView] = useState('board');
-  const [activeTab, setActiveTab] = useState('project');
-  const [stageFilter, setStageFilter] = useState(null);
+  // Tab / view / stage-filter are seeded from the URL on first load and kept in sync with it
+  // afterward (see the effect below), so refreshing the page — or bookmarking/sharing a link —
+  // lands you back on the exact same tab, view, and filter instead of resetting to the default.
+  const [view, setView] = useState(() => searchParams.get('view') || (searchParams.get('stage') ? 'list' : 'board'));
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'project');
+  const [stageFilter, setStageFilter] = useState(() => searchParams.get('stage') || null);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -73,23 +76,54 @@ export default function Projects() {
 
   // Lets the sidebar's "+ New" quick-add jump straight here with the modal already open,
   // instead of requiring a click into Projects first and then another click to Add Project.
-  // Also lets Dashboard stat cards ("Deals Won", "Ideas", "Active Projects", ...) deep-link
-  // straight to the full underlying list, filtered by stage across all categories.
+  // This only reacts to the one-off "new" param — tab/view/stage are handled by the sync
+  // effect below and shouldn't be touched here.
   useEffect(() => {
     const quickAdd = searchParams.get('new');
-    const stageParam = searchParams.get('stage');
     if (quickAdd) {
       openCreate(quickAdd === '1' ? {} : { stage: quickAdd });
-    }
-    if (stageParam) {
-      setStageFilter(stageParam);
-      setView('list');
-    }
-    if (quickAdd || stageParam) {
-      setSearchParams({}, { replace: true });
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('new');
+        return next;
+      }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, stages]);
+
+  // A Dashboard stat card can also land here with an initial ?stage=... the first time this
+  // page mounts (picked up by the useState initializer above). If the page was already mounted
+  // and the user clicks another such link, this catches the update too.
+  useEffect(() => {
+    const stageParam = searchParams.get('stage');
+    if (stageParam && stageParam !== stageFilter) {
+      setStageFilter(stageParam);
+      setView('list');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Keep the URL in sync with tab/view/stage so refreshing, bookmarking, or sharing a link
+  // brings you back to exactly what you were looking at instead of the defaults.
+  useEffect(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('new');
+        next.set('view', view);
+        if (stageFilter) {
+          next.set('stage', stageFilter);
+          next.delete('tab');
+        } else {
+          next.delete('stage');
+          next.set('tab', activeTab);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, activeTab, stageFilter]);
 
   function openEdit(project) {
     setEditing(project);
