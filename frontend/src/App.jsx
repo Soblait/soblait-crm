@@ -7,6 +7,7 @@ import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Leads from './pages/Leads.jsx';
 import Projects from './pages/Projects.jsx';
+import Clients from './pages/Clients.jsx';
 import ActNow from './pages/ActNow.jsx';
 import Calendar from './pages/Calendar.jsx';
 import Tasks from './pages/Tasks.jsx';
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="leads" element={<Leads />} />
         <Route path="projects" element={<Projects />} />
+        <Route path="clients" element={<Clients />} />
         <Route path="act-now" element={<ActNow />} />
         <Route path="calendar" element={<Calendar />} />
         <Route path="tasks" element={<Tasks />} />

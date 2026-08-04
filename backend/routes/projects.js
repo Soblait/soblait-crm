@@ -4,6 +4,7 @@ const { query, logAudit, checkProjectAutomations } = require('../db');
 const router = express.Router();
 
 const STAGES = ['idea', 'demo', 'active', 'won', 'lost'];
+const CATEGORIES = ['idea', 'app', 'project'];
 
 router.get('/', async (req, res, next) => {
   try {
@@ -28,13 +29,14 @@ router.post('/', async (req, res, next) => {
   try {
     const {
       name, company, value, stage, close_date, notes, type, demo_done, demo_date, lead_id,
-      app_name, audience, publish_target,
+      app_name, audience, publish_target, category,
     } = req.body;
     if (!name) return res.status(400).json({ error: 'name is required' });
     const finalStage = STAGES.includes(stage) ? stage : 'idea';
+    const finalCategory = CATEGORIES.includes(category) ? category : 'project';
     const result = await query(
-      `INSERT INTO projects (name, company, value, stage, close_date, notes, type, demo_done, demo_date, lead_id, app_name, audience, publish_target)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+      `INSERT INTO projects (name, company, value, stage, close_date, notes, type, demo_done, demo_date, lead_id, app_name, audience, publish_target, category)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
       [
         name,
         company || '',
@@ -49,6 +51,7 @@ router.post('/', async (req, res, next) => {
         app_name || '',
         audience || '',
         publish_target || '',
+        finalCategory,
       ]
     );
     const project = (await query('SELECT * FROM projects WHERE id = $1', [result.rows[0].id])).rows[0];
@@ -66,11 +69,12 @@ router.put('/:id', async (req, res, next) => {
     if (!existing) return res.status(404).json({ error: 'Project not found' });
     const {
       name, company, value, stage, close_date, notes, type, demo_done, demo_date, lead_id,
-      app_name, audience, publish_target,
+      app_name, audience, publish_target, category,
     } = req.body;
     const finalStage = stage === undefined ? existing.stage : (STAGES.includes(stage) ? stage : existing.stage);
+    const finalCategory = category === undefined ? existing.category : (CATEGORIES.includes(category) ? category : existing.category);
     await query(
-      `UPDATE projects SET name=$1, company=$2, value=$3, stage=$4, close_date=$5, notes=$6, type=$7, demo_done=$8, demo_date=$9, lead_id=$10, app_name=$11, audience=$12, publish_target=$13, updated_at=NOW() WHERE id=$14`,
+      `UPDATE projects SET name=$1, company=$2, value=$3, stage=$4, close_date=$5, notes=$6, type=$7, demo_done=$8, demo_date=$9, lead_id=$10, app_name=$11, audience=$12, publish_target=$13, category=$14, updated_at=NOW() WHERE id=$15`,
       [
         name ?? existing.name,
         company ?? existing.company,
@@ -85,6 +89,7 @@ router.put('/:id', async (req, res, next) => {
         app_name ?? existing.app_name,
         audience ?? existing.audience,
         publish_target ?? existing.publish_target,
+        finalCategory,
         req.params.id,
       ]
     );

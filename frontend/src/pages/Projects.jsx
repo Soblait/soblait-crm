@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Pencil, Trash2, X, LayoutGrid, List as ListIcon, Columns3, CheckCircle2, Circle } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, LayoutGrid, List as ListIcon, Columns3, CheckCircle2, Circle, Lightbulb, Smartphone, Briefcase } from 'lucide-react';
 import client from '../api/client';
 
 const EMPTY_FORM = {
@@ -9,6 +9,7 @@ const EMPTY_FORM = {
   type: '',
   value: '',
   stage: '',
+  category: 'project',
   demo_done: false,
   demo_date: '',
   notes: '',
@@ -16,6 +17,12 @@ const EMPTY_FORM = {
   audience: '',
   publish_target: '',
 };
+
+const CATEGORIES = [
+  { key: 'idea', label: 'Ideas', singular: 'Idea', icon: Lightbulb },
+  { key: 'app', label: 'Apps', singular: 'App', icon: Smartphone },
+  { key: 'project', label: 'Projects', singular: 'Project', icon: Briefcase },
+];
 
 function currency(n) {
   return `$${Number(n || 0).toLocaleString()}`;
@@ -26,6 +33,7 @@ export default function Projects() {
   const [projects, setProjects] = useState([]);
   const [stages, setStages] = useState([]);
   const [view, setView] = useState('board');
+  const [activeTab, setActiveTab] = useState('project');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -39,14 +47,18 @@ export default function Projects() {
     refresh();
   }, []);
 
-  const activeValue = useMemo(() => projects.filter((p) => p.stage === 'active').reduce((s, p) => s + p.value, 0), [projects]);
-  const ideasCount = useMemo(() => projects.filter((p) => p.stage === 'idea').length, [projects]);
-  const activeCount = useMemo(() => projects.filter((p) => p.stage === 'active').length, [projects]);
-  const wonCount = useMemo(() => projects.filter((p) => p.stage === 'won').length, [projects]);
+  // Ideas / Apps / Projects are the same underlying pipeline (idea -> demo -> active -> won ->
+  // lost), just split into separate areas by what kind of thing it fundamentally is. Fall back
+  // to 'project' for any row that hasn't been categorized yet.
+  const filtered = useMemo(() => projects.filter((p) => (p.category || 'project') === activeTab), [projects, activeTab]);
 
-  function openCreate(presetStage) {
+  const totalValue = useMemo(() => filtered.reduce((s, p) => s + p.value, 0), [filtered]);
+  const inProgressCount = useMemo(() => filtered.filter((p) => p.stage === 'demo' || p.stage === 'active').length, [filtered]);
+  const wonCount = useMemo(() => filtered.filter((p) => p.stage === 'won').length, [filtered]);
+
+  function openCreate(overrides = {}) {
     setEditing(null);
-    setForm({ ...EMPTY_FORM, stage: presetStage || stages[0]?.name || 'idea' });
+    setForm({ ...EMPTY_FORM, stage: stages[0]?.name || 'idea', category: activeTab, ...overrides });
     setShowModal(true);
   }
 
@@ -55,7 +67,7 @@ export default function Projects() {
   useEffect(() => {
     const quickAdd = searchParams.get('new');
     if (quickAdd) {
-      openCreate(quickAdd === '1' ? undefined : quickAdd);
+      openCreate(quickAdd === '1' ? {} : { stage: quickAdd });
       setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -90,21 +102,33 @@ export default function Projects() {
     refresh();
   }
 
+  const activeCategory = CATEGORIES.find((c) => c.key === activeTab);
+
   return (
     <div className="space-y-5">
+      <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden w-fit">
+        {CATEGORIES.map((c) => (
+          <button
+            key={c.key}
+            onClick={() => setActiveTab(c.key)}
+            className={`px-4 py-2 text-sm font-medium flex items-center gap-1.5 ${
+              activeTab === c.key ? 'bg-gradient-to-r from-brand-purple to-brand-pink text-white' : 'bg-white dark:bg-gray-800 text-gray-500'
+            }`}
+          >
+            <c.icon size={14} /> {c.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-3">
           <div className="card px-4 py-2.5 text-sm">
-            <span className="text-gray-400">Active Project Value</span>{' '}
-            <span className="font-semibold text-gray-900 dark:text-white">{currency(activeValue)}</span>
+            <span className="text-gray-400">Total Value</span>{' '}
+            <span className="font-semibold text-gray-900 dark:text-white">{currency(totalValue)}</span>
           </div>
           <div className="card px-4 py-2.5 text-sm">
-            <span className="text-gray-400">Ideas</span>{' '}
-            <span className="font-semibold text-gray-900 dark:text-white">{ideasCount}</span>
-          </div>
-          <div className="card px-4 py-2.5 text-sm">
-            <span className="text-gray-400">Active</span>{' '}
-            <span className="font-semibold text-gray-900 dark:text-white">{activeCount}</span>
+            <span className="text-gray-400">In Progress</span>{' '}
+            <span className="font-semibold text-gray-900 dark:text-white">{inProgressCount}</span>
           </div>
           <div className="card px-4 py-2.5 text-sm">
             <span className="text-gray-400">Won</span>{' '}
@@ -130,8 +154,8 @@ export default function Projects() {
               </button>
             ))}
           </div>
-          <button onClick={openCreate} className="btn-gradient flex items-center gap-1.5 text-sm">
-            <Plus size={15} /> Add Project
+          <button onClick={() => openCreate()} className="btn-gradient flex items-center gap-1.5 text-sm">
+            <Plus size={15} /> Add {activeCategory.singular}
           </button>
         </div>
       </div>
@@ -139,7 +163,7 @@ export default function Projects() {
       {(view === 'board' || view === 'kanban') && (
         <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.max(stages.length, 1)}, minmax(240px, 1fr))` }}>
           {stages.map((stage) => {
-            const stageProjects = projects.filter((p) => p.stage === stage.name);
+            const stageProjects = filtered.filter((p) => p.stage === stage.name);
             const stageValue = stageProjects.reduce((s, p) => s + p.value, 0);
             return (
               <div key={stage.id} className="card p-3 min-w-[240px]">
@@ -211,7 +235,7 @@ export default function Projects() {
               </tr>
             </thead>
             <tbody>
-              {projects.map((p) => (
+              {filtered.map((p) => (
                 <tr key={p.id} className="border-b border-gray-50 dark:border-gray-800/60 hover:bg-gray-50 dark:hover:bg-gray-800/40">
                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{p.name}</td>
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{p.company}</td>
@@ -233,10 +257,10 @@ export default function Projects() {
                   </td>
                 </tr>
               ))}
-              {projects.length === 0 && (
+              {filtered.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                    No projects yet.
+                    No {activeCategory.label.toLowerCase()} yet.
                   </td>
                 </tr>
               )}
@@ -249,7 +273,7 @@ export default function Projects() {
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
           <div className="card w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">{editing ? 'Edit Project' : 'Add Project'}</h3>
+              <h3 className="font-semibold text-lg">{editing ? `Edit ${activeCategory.singular}` : `Add ${activeCategory.singular}`}</h3>
               <button onClick={() => setShowModal(false)}>
                 <X size={18} />
               </button>
@@ -257,13 +281,29 @@ export default function Projects() {
             <form onSubmit={handleSubmit} className="space-y-3">
               <input
                 required
-                placeholder="Project name"
+                placeholder="Name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
               />
+
+              <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                {CATEGORIES.map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => setForm({ ...form, category: c.key })}
+                    className={`flex-1 py-2 text-sm flex items-center justify-center gap-1.5 ${
+                      form.category === c.key ? 'bg-gradient-to-r from-brand-purple to-brand-pink text-white' : 'bg-white dark:bg-gray-800 text-gray-500'
+                    }`}
+                  >
+                    <c.icon size={14} /> {c.singular}
+                  </button>
+                ))}
+              </div>
+
               <input
-                placeholder="Company / Client"
+                placeholder="Company / Client (optional)"
                 value={form.company}
                 onChange={(e) => setForm({ ...form, company: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
@@ -346,7 +386,7 @@ export default function Projects() {
               />
               <div className="flex items-center gap-2">
                 <button type="submit" className="flex-1 btn-gradient justify-center flex py-2.5">
-                  {editing ? 'Save Changes' : 'Create Project'}
+                  {editing ? 'Save Changes' : `Create ${activeCategory.singular}`}
                 </button>
                 {editing && (
                   <button

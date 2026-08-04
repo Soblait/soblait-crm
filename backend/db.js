@@ -75,6 +75,28 @@ async function migrate() {
     `ALTER TABLE projects ADD COLUMN IF NOT EXISTS app_name TEXT`,
     `ALTER TABLE projects ADD COLUMN IF NOT EXISTS audience TEXT`,
     `ALTER TABLE projects ADD COLUMN IF NOT EXISTS publish_target TEXT`,
+    // High-level bucket (idea / app / project) so the UI can split these into separate tabs,
+    // independent of `stage` (which tracks lifecycle progress within whichever bucket it's in).
+    // Left nullable on purpose — backfilled once below, then never touched again so a user's
+    // manual recategorization always sticks.
+    `ALTER TABLE projects ADD COLUMN IF NOT EXISTS category TEXT`,
+    `CREATE TABLE IF NOT EXISTS clients (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      contact_name TEXT,
+      contact_email TEXT,
+      project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
+    `CREATE TABLE IF NOT EXISTS client_features (
+      id SERIAL PRIMARY KEY,
+      client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      done INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
     `CREATE TABLE IF NOT EXISTS tasks (
       id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,
@@ -167,6 +189,20 @@ async function migrate() {
 
   await remapPipelineStages();
   await ensureDemoStage();
+
+  // One-time backfill for the new idea/app/project category split. Only ever touches rows
+  // where category is still unset, so a user's manual recategorization is never overwritten
+  // on later redeploys — and any brand-new row already sets category explicitly on insert.
+  // \y is Postgres's word-boundary marker — matches "app" or "Mobile App" but not
+  // "application" (ILIKE '%app%' would wrongly match "application" as a substring).
+  await query(`
+    UPDATE projects SET category = CASE
+      WHEN type ~* '\\yapp\\y' THEN 'app'
+      WHEN stage = 'idea' THEN 'idea'
+      ELSE 'project'
+    END
+    WHERE category IS NULL
+  `);
 
   // Refresh cosmetic automation descriptions that referenced the old "opportunity" wording.
   // Guarded on the exact old text so this only touches rows that still have it (idempotent).
@@ -284,10 +320,10 @@ async function seed() {
 
   const projectCount = Number((await query('SELECT COUNT(*) as c FROM projects')).rows[0].c);
   if (projectCount === 0) {
-    await query('INSERT INTO projects (name, company, value, stage, close_date, type) VALUES ($1,$2,$3,$4,$5,$6)',
-      ['TechCorp Enterprise Deal', 'TechCorp', 45000, 'active', '2026-08-15', 'application']);
-    await query('INSERT INTO projects (name, company, value, stage, close_date, type) VALUES ($1,$2,$3,$4,$5,$6)',
-      ['StartupLab Pilot', 'StartupLab', 12000, 'idea', '2026-09-01', 'website']);
+    await query('INSERT INTO projects (name, company, value, stage, close_date, type, category) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+      ['TechCorp Enterprise Deal', 'TechCorp', 45000, 'active', '2026-08-15', 'application', 'project']);
+    await query('INSERT INTO projects (name, company, value, stage, close_date, type, category) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+      ['StartupLab Pilot', 'StartupLab', 12000, 'idea', '2026-09-01', 'website', 'idea']);
   }
 
   const taskCount = Number((await query('SELECT COUNT(*) as c FROM tasks')).rows[0].c);

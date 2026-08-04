@@ -14,6 +14,7 @@ import {
   Moon,
   Sun,
   Plus,
+  Building2,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 
@@ -30,6 +31,7 @@ const navItems = [
 const crmItems = [
   { to: '/leads', label: 'Leads', icon: Users },
   { to: '/projects', label: 'Projects', icon: Target },
+  { to: '/clients', label: 'Clients', icon: Building2 },
 ];
 
 function NavItem({ to, label, icon: Icon }) {

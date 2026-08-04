@@ -9,6 +9,7 @@ const TITLES = {
   '/dashboard': 'Dashboard',
   '/leads': 'Leads',
   '/projects': 'Projects',
+  '/clients': 'Clients',
   '/act-now': 'Act Now',
   '/calendar': 'Smart Calendar',
   '/tasks': 'Tasks',
