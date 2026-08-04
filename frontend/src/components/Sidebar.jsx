@@ -15,11 +15,13 @@ import {
   Sun,
   Plus,
   Building2,
+  Wand2,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/ai-tools', label: 'AI Tools', icon: Wand2 },
   { to: '/act-now', label: 'Act Now', icon: Zap },
   { to: '/calendar', label: 'Smart Calendar', icon: CalendarDays },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },

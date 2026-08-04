@@ -166,6 +166,14 @@ async function migrate() {
       type TEXT DEFAULT 'event',
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`,
+    // Reusable AI prompt templates for the AI Tools hub — independent of any single project.
+    `CREATE TABLE IF NOT EXISTS prompt_library (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      prompt TEXT NOT NULL,
+      category TEXT DEFAULT 'general',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`,
   ];
 
   for (const stmt of statements) {
@@ -432,6 +440,20 @@ async function seed() {
       ['Kickoff call with TechCorp', '2026-08-06', 'event']);
     await query('INSERT INTO calendar_events (title, date, type) VALUES ($1,$2,$3)',
       ['Quarterly business review', '2026-08-20', 'event']);
+  }
+
+  const promptCount = Number((await query('SELECT COUNT(*) as c FROM prompt_library')).rows[0].c);
+  if (promptCount === 0) {
+    const prompts = [
+      ['Kickoff research brief', 'Research the market, competitors, and risks for: {topic}. Give me an overview, key risks, opportunities, and recommended next steps.', 'research'],
+      ['Weekly status summary', 'Summarize the current status of {project}: what shipped, what is blocked, and what is next.', 'summary'],
+      ['Feature brainstorm', 'Brainstorm 10 feature ideas for {project} aimed at {audience}, ranked by effort vs impact.', 'brainstorm'],
+      ['Sprint plan to tasks', 'Turn this rough plan into a task list with owners and priorities:\n{plan}', 'planning'],
+      ['Client update draft', 'Draft a short, friendly status update for a client about {project}, covering recent progress and next steps.', 'communication'],
+    ];
+    for (const p of prompts) {
+      await query('INSERT INTO prompt_library (title, prompt, category) VALUES ($1,$2,$3)', p);
+    }
   }
 }
 

@@ -16,6 +16,7 @@ const calendarRoutes = require('./routes/calendar');
 const reportsRoutes = require('./routes/reports');
 const automationsRoutes = require('./routes/automations');
 const settingsRoutes = require('./routes/settings');
+const aiToolsRoutes = require('./routes/aiTools');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -36,6 +37,7 @@ app.use('/api/calendar', authMiddleware, calendarRoutes);
 app.use('/api/reports', authMiddleware, reportsRoutes);
 app.use('/api/automations', authMiddleware, automationsRoutes);
 app.use('/api/settings', authMiddleware, settingsRoutes);
+app.use('/api/ai-tools', authMiddleware, aiToolsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });

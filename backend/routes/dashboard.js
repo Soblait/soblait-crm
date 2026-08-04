@@ -106,4 +106,7 @@ router.post('/chat', async (req, res, next) => {
   }
 });
 
+// Exposed so routes/aiTools.js can reuse the exact same portfolio stats for "Dashboard Insight"
+// instead of recomputing them differently.
 module.exports = router;
+module.exports.computeStats = computeStats;

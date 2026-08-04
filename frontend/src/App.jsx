@@ -5,6 +5,7 @@ import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import AITools from './pages/AITools.jsx';
 import Leads from './pages/Leads.jsx';
 import Projects from './pages/Projects.jsx';
 import Clients from './pages/Clients.jsx';
@@ -45,6 +46,7 @@ export default function App() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="ai-tools" element={<AITools />} />
         <Route path="leads" element={<Leads />} />
         <Route path="projects" element={<Projects />} />
         <Route path="clients" element={<Clients />} />
