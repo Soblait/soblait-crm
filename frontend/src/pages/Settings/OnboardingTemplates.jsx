@@ -79,7 +79,7 @@ export default function OnboardingTemplates() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="card w-full max-w-md p-6">
+          <div className="card w-full max-w-md p-6 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-lg">{editing ? 'Edit Template' : 'Add Template'}</h3>
               <button onClick={() => setShowModal(false)}>
